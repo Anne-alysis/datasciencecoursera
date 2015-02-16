@@ -1,0 +1,79 @@
+---
+output: pdf_document
+---
+## Clean Data Course Project
+
+This code takes combines the test and train data sets from http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones and then returns a data frame including only the average results for each subject and test for each variable for which a mean has been computed. The goal is to reformat the test and train data sets separately, so that when they are merged, less data is handled, providing a faster code.  Actual data is in x files, type of tests are in y files, and the subject id is in the subject files.  The code begins by initializing the dplyr library and by reading in the relevant data sets:
+
+```
+library(dplyr)
+activity_labels<-read.table("activity_labels.txt")
+features<-read.table("features.txt")
+
+x_test<-read.table("./test/X_test.txt")
+y_test<-read.table("./test/Y_test.txt")
+subject_test<-read.table("./test/subject_test.txt")
+x_train<-read.table("./train/X_train.txt")
+y_train<-read.table("./train/Y_train.txt")
+subject_train<-read.table("./train/subject_train.txt")
+```
+
+Next, rename the x column variables by their corresponding test names from the features.txt file:
+
+```
+names(x_test)<-features[,2]
+names(x_train)<-features[,2]
+```
+Then, find the indices for the variables of either means or standard deviations and create a truncated data frames subsetting only on those indices:
+```
+ind<-grep("mean|std",features[,2])
+tokeep<-features[ind,1]
+x_test_trunc<-x_test[,tokeep]
+x_train_trunc<-x_train[,tokeep]
+```
+Next, take the data with the type of test (y) and match it to the activity labels data set so the test label is more descriptive.  Then add these to the x data frames, along with adding the subject label, both via the mutate function:
+
+```
+x_test_id<-apply(y_test,1,function(z) activity_labels[z,2])
+x_train_id<-apply(y_train,1,function(z) activity_labels[z,2])
+
+x_test_trunc<-mutate(x_test_trunc,subject_id=subject_test[,1],test_id=x_test_id)
+x_train_trunc<-mutate(x_train_trunc,subject_id=subject_train[,1],test_id=x_train_id)
+```
+Then, reorder the data frames so that the subject id and the test type are at the beginning of the data frame, for clarity:
+```
+n<-dim(x_test_trunc)[2]-2
+ord<-c(n+1,n+2,1:n)
+x_test_final<-x_test_trunc[,ord]
+x_train_final<-x_train_trunc[,ord]
+```
+Finally, bind the train and test data sets together:
+```
+x<-rbind(x_test_final,x_train_final)
+```
+Now x is the complete data set with descriptive variables for each column, and with each subject id and test name also embedded.  
+
+Lastly, to determine the average of each variable for each activity and each subject, the x data set needs to be subsetted for only mean variables, with "()-" characters removed from the variable names for ease of manipulation and cross-checking.
+```
+names(x)<-gsub("[()-]","",names(x))
+ind<-grep("mean",names(x))
+x_sum<-x[,c(1,2,ind)]
+```
+Next, in order to isolate the subject and the test, the new data set is grouped:
+
+```
+x_group<-group_by(x_sum,subject_id,test_id)
+```
+The last task is to calculate the mean for each column, which can be accomplished with the summarise_each function.  To turn the output of this function into a data frame, the `data.frame` command is called.  
+
+```
+
+t<-data.frame(summarise_each(x_group,funs(mean)))
+# to check the summarize_each function: 
+#t1<-data.frame(summarize(x_group,mean1=mean(tBodyAccmeanX),mean2=mean(tBodyAccmeanY)))
+```
+Then to clear up clutter, the word "mean" is removed from the variable labels, and the result is written to the file.
+```
+names(t)<-gsub("mean","",names(t))
+write.table(t,"CleanData_Project2.txt",row.name=FALSE)
+```

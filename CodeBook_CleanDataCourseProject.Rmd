@@ -1,0 +1,12 @@
+---
+output: pdf_document
+---
+## Code Book for Course Project
+
+
+
+This describes the variables in the CleanData_Project2.txt file:
+
+- column 1: subject_id. this is the id number of the subject under test
+- column 2: test_id. this is the actual test that was performed, with 6 possible: WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING
+- columns 3-48: these are the mean values for the given variable for each subject and each test. "f" indicates frequency and "t" indicates time.   
